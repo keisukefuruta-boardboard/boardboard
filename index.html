@@ -317,6 +317,10 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;b
       <div class="wait-icon">⏳</div>
       <div class="wait-text">提出済み！</div>
       <div class="wait-sub" id="wait-sub-text">他の人を待っています…</div>
+      <button id="force-reveal-btn" onclick="forceReveal()"
+        style="display:none;margin-top:12px;padding:12px 24px;background:var(--orange);color:white;border:2px solid var(--ink);border-radius:12px;font-family:'Fredoka One',cursive;font-size:15px;cursor:pointer;box-shadow:3px 3px 0 var(--ink);">
+        ホスト：強制的に発表へ →
+      </button>
     </div>
   </div>
   <div class="board-bottom">
@@ -332,7 +336,13 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;b
     <div id="vote-status-badge" class="topbar-badge" style="font-size:13px;letter-spacing:1px;"></div>
   </div>
   <div class="reveal-body" id="reveal-body"></div>
-  <div class="vote-wait" id="vote-wait-bar">いいと思う回答に投票しよう（1票だけ！）</div>
+  <div class="vote-wait" id="vote-wait-bar" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+    <span>いいと思う回答に投票しよう（1票だけ！）</span>
+    <button id="force-results-btn" onclick="forceResults()"
+      style="display:none;padding:12px 24px;background:var(--orange);color:white;border:2px solid var(--ink);border-radius:12px;font-family:'Fredoka One',cursive;font-size:15px;cursor:pointer;box-shadow:3px 3px 0 var(--ink);">
+      ホスト：強制的に結果へ →
+    </button>
+  </div>
 </div>
 
 <!-- RESULTS -->
@@ -642,10 +652,22 @@ async function submitAnswer(){
   document.getElementById('submit-btn').classList.add('done');
   document.getElementById('submit-btn').textContent='提出済み ✓';
   document.getElementById('wait-overlay').style.display='flex';
+  // Show force button for host
+  if(S.isHost){
+    document.getElementById('force-reveal-btn').style.display='block';
+  }
   toast('提出しました！');
   await update(ref(db,`rooms/${S.roomCode}/players/${S.playerId}`),{
     submitted:true, dataUrl
   });
+}
+
+async function forceReveal(){
+  await set(ref(db,`rooms/${S.roomCode}/state`),{phase:'reveal',round:S.round});
+}
+
+async function forceResults(){
+  await set(ref(db,`rooms/${S.roomCode}/state`),{phase:'results',round:S.round});
 }
 
 // ── Reveal ──
@@ -711,6 +733,10 @@ async function castVote(idx){
   const curSnap=await get(ref(db,`rooms/${S.roomCode}/answers/${idx}/votes`));
   const cur=curSnap.val()||0;
   await set(ref(db,`rooms/${S.roomCode}/answers/${idx}/votes`),cur+1);
+  // Show force button for host
+  if(S.isHost){
+    document.getElementById('force-results-btn').style.display='block';
+  }
   renderReveal(S.revealAnswers,S.revealPlayers);
 }
 
@@ -862,6 +888,8 @@ window.setTool=setTool;
 window.setSize=setSize;
 window.submitAnswer=submitAnswer;
 window.castVote=castVote;
+window.forceReveal=forceReveal;
+window.forceResults=forceResults;
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.getElementById('name-modal').style.display!=='none') confirmName();
