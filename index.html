@@ -790,24 +790,19 @@ async function loadResults(){
   });
   if(Object.keys(pointUpdates).length>0) await update(ref(db),pointUpdates);
 
-  // Save all answers to log in Firebase（重複防止：同ラウンドが未保存の場合のみ）
-  const existingLogSnap=await get(ref(db,`rooms/${S.roomCode}/log`));
-  const existingLogs=existingLogSnap.val()||{};
-  const alreadySaved=Object.values(existingLogs).some(l=>l.round===S.round);
-  if(!alreadySaved){
-    const logEntry={
-      round:S.round,
-      time:nowStr(),
-      answers:answers.map(a=>({
-        playerId:a.playerId,
-        name:players[a.playerId]?.name||'?',
-        emoji:players[a.playerId]?.emoji||'👤',
-        dataUrl:a.dataUrl,
-        votes:a.votes
-      }))
-    };
-    await push(ref(db,`rooms/${S.roomCode}/log`),logEntry);
-  }
+  // Save all answers to log（ラウンド番号をキーにして上書き保存、重複しない）
+  const logEntry={
+    round:S.round,
+    time:nowStr(),
+    answers:answers.map(a=>({
+      playerId:a.playerId,
+      name:players[a.playerId]?.name||'?',
+      emoji:players[a.playerId]?.emoji||'👤',
+      dataUrl:a.dataUrl,
+      votes:a.votes
+    }))
+  };
+  await set(ref(db,`rooms/${S.roomCode}/log/round_${S.round}`),logEntry);
 
   // Sort by votes
   const sorted=[...answers].sort((a,b)=>b.votes-a.votes);
