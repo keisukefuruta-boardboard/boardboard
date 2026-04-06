@@ -393,7 +393,7 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;b
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, update, onValue, push, remove }
+import { getDatabase, ref, set, get, update, onValue, push, remove, increment }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ── Firebase config ──
@@ -750,12 +750,9 @@ async function castVote(idx){
   S.voted=true;
   S.myVoteIdx=idx;
   toast('投票しました！');
-  // Write vote to Firebase
+  // Write vote to Firebase（アトミックにインクリメント）
   await update(ref(db,`rooms/${S.roomCode}/players/${S.playerId}`),{voted:true,voteTarget:a.playerId});
-  // Increment vote count on answer
-  const curSnap=await get(ref(db,`rooms/${S.roomCode}/answers/${idx}/votes`));
-  const cur=curSnap.val()||0;
-  await set(ref(db,`rooms/${S.roomCode}/answers/${idx}/votes`),cur+1);
+  await update(ref(db,`rooms/${S.roomCode}/answers/${idx}`),{votes: increment(1)});
   // Show force button for host
   if(S.isHost){
     document.getElementById('force-results-btn').style.display='block';
