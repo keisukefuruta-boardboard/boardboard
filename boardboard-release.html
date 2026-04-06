@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BOARDBOARD</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --pink:   #FF6B9D;
+  --yellow: #FFD93D;
+  --mint:   #06D6A0;
+  --blue:   #4D96FF;
+  --orange: #FF6B35;
+  --purple: #9B5DE5;
+  --white:  #FFFDF7;
+  --ink:    #2D2D2D;
+  --light:  #F7F3E9;
+  --shadow: 4px 4px 0px var(--ink);
+  --shadow-sm: 3px 3px 0px var(--ink);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:'Noto Sans JP',sans-serif;
+  background:var(--light);color:var(--ink);
+  min-height:100vh;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,rgba(45,45,45,.07) 1.5px,transparent 1.5px);
+  background-size:28px 28px;pointer-events:none;z-index:0;
+}
+.screen{display:none;min-height:100vh;position:relative;z-index:1;flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ── SHARED ── */
+.topbar{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 18px;border-bottom:3px solid var(--ink);
+  position:sticky;top:0;z-index:50;
+}
+.topbar-logo{font-family:'Fredoka One',cursive;font-size:20px;color:white;flex:1;letter-spacing:1px;}
+.topbar-badge{
+  background:white;border:2px solid var(--ink);border-radius:8px;
+  padding:5px 12px;font-family:'Fredoka One',cursive;font-size:16px;letter-spacing:3px;
+}
+.back-btn{background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:0 6px 0 0;}
+.btn{
+  display:block;width:100%;padding:16px;
+  border:3px solid var(--ink);border-radius:16px;
+  font-family:'Fredoka One',cursive;font-size:19px;cursor:pointer;
+  transition:transform .08s,box-shadow .08s;
+  box-shadow:var(--shadow);letter-spacing:1px;text-align:center;
+}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink);}
+.btn-pink  {background:var(--pink);  color:white;}
+.btn-yellow{background:var(--yellow);color:var(--ink);}
+.btn-mint  {background:var(--mint);  color:white;}
+.btn-blue  {background:var(--blue);  color:white;}
+.btn-white {background:white;        color:var(--ink);}
+.btn-ghost {background:transparent;  color:var(--ink);box-shadow:none;border:2px solid #ccc;}
+.input{
+  width:100%;padding:14px 18px;
+  border:3px solid var(--ink);border-radius:14px;
+  font-size:18px;font-family:'Noto Sans JP',sans-serif;font-weight:700;
+  background:white;outline:none;box-shadow:var(--shadow);
+  transition:transform .1s,box-shadow .1s;
+}
+.input:focus{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink);}
+.card{background:white;border:3px solid var(--ink);border-radius:20px;box-shadow:var(--shadow);padding:20px;}
+
+/* ── HOME ── */
+#home{align-items:center;justify-content:center;padding:40px 24px;}
+.home-logo{
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(32px,11vw,72px);
+  line-height:1;text-align:center;letter-spacing:-1px;margin-bottom:4px;
+  white-space:nowrap;
+}
+.home-logo .b1{color:var(--pink);}
+.home-logo .b2{color:var(--blue);}
+.home-sub{font-size:13px;color:#999;text-align:center;margin-bottom:36px;letter-spacing:1px;}
+.home-card{width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;}
+.or-row{display:flex;align-items:center;gap:10px;font-family:'Fredoka One',cursive;font-size:14px;color:#bbb;}
+.or-row::before,.or-row::after{content:'';flex:1;height:2px;background:#e8e4d8;border-radius:2px;}
+
+/* ── NAME MODAL ── */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(45,45,45,.6);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;z-index:200;padding:24px;
+}
+.modal-box{
+  background:white;border:3px solid var(--ink);border-radius:24px;
+  padding:32px 24px;box-shadow:6px 6px 0 var(--ink);
+  width:100%;max-width:340px;text-align:center;
+  animation:popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+.modal-title{font-family:'Fredoka One',cursive;font-size:26px;margin-bottom:20px;}
+@keyframes popIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+
+/* ── LOBBY ── */
+.lobby-body{flex:1;padding:18px;display:flex;flex-direction:column;gap:16px;}
+.code-block{
+  background:var(--yellow);border:3px solid var(--ink);border-radius:20px;
+  box-shadow:var(--shadow);padding:18px;text-align:center;
+}
+.code-label{font-size:11px;color:var(--ink);opacity:.6;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;}
+.code-big{font-family:'Fredoka One',cursive;font-size:52px;color:var(--ink);letter-spacing:12px;line-height:1;}
+.code-hint{font-size:12px;color:var(--ink);opacity:.55;margin-top:6px;}
+.sec-title{font-family:'Fredoka One',cursive;font-size:15px;color:#999;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.player-list{display:flex;flex-direction:column;gap:8px;}
+.player-row{
+  display:flex;align-items:center;gap:12px;
+  background:white;border:2px solid var(--ink);border-radius:14px;
+  padding:11px 16px;box-shadow:var(--shadow-sm);
+  animation:popIn .2s cubic-bezier(.34,1.56,.64,1);
+}
+.p-emo{font-size:22px;}
+.p-name{font-weight:900;font-size:15px;flex:1;}
+.host-badge{font-family:'Fredoka One',cursive;font-size:11px;background:var(--pink);color:white;padding:3px 10px;border-radius:20px;border:2px solid var(--ink);}
+.status-dot{width:10px;height:10px;border-radius:50%;background:#ccc;border:2px solid var(--ink);flex-shrink:0;}
+.status-dot.submitted{background:var(--mint);}
+.status-dot.voted{background:var(--blue);}
+
+/* ── BOARD ── */
+.toolbar-wrap{
+  background:white;border-bottom:3px solid var(--ink);
+  padding:10px 12px;display:flex;align-items:center;gap:8px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;
+}
+.toolbar-wrap::-webkit-scrollbar{display:none;}
+.c-dot{width:30px;height:30px;border-radius:50%;border:3px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .1s,border-color .1s;}
+.c-dot.active{border-color:var(--ink);transform:scale(1.2);}
+.t-pill{padding:6px 12px;border:2px solid var(--ink);border-radius:20px;background:white;font-size:15px;cursor:pointer;flex-shrink:0;font-family:'Fredoka One',cursive;transition:all .1s;}
+.t-pill.active{background:var(--ink);color:white;}
+.t-sep{width:1px;height:26px;background:#ddd;flex-shrink:0;margin:0 2px;}
+.canvas-wrap{
+  flex:1;position:relative;overflow:hidden;background:white;
+  margin:12px;border:3px solid var(--ink);border-radius:18px;
+  box-shadow:var(--shadow);min-height:240px;
+}
+canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;border-radius:15px;}
+.canvas-ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ccc;font-weight:700;font-size:14px;pointer-events:none;letter-spacing:1px;}
+.wait-overlay{
+  position:absolute;inset:0;background:rgba(255,253,247,.95);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;border-radius:15px;z-index:10;
+}
+.wait-icon{font-size:48px;animation:bounce 1s ease infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.wait-text{font-family:'Fredoka One',cursive;font-size:20px;}
+.wait-sub{font-size:13px;color:#aaa;}
+.board-bottom{padding:8px 12px 20px;display:flex;gap:8px;}
+.erase-btn{padding:12px 16px;border:2px solid var(--ink);border-radius:12px;background:white;font-family:'Fredoka One',cursive;font-size:14px;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .08s,box-shadow .08s;flex-shrink:0;}
+.erase-btn:active{transform:translate(2px,2px);box-shadow:none;}
+.submit-btn{flex:1;padding:12px;background:var(--pink);color:white;border:2px solid var(--ink);border-radius:12px;font-family:'Fredoka One',cursive;font-size:18px;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .08s,box-shadow .08s;}
+.submit-btn:active{transform:translate(2px,2px);box-shadow:none;}
+.submit-btn.done{background:var(--mint);}
+
+/* ── REVEAL ── */
+.reveal-body{flex:1;padding:14px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.anon-card{background:white;border:3px solid var(--ink);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;animation:flipIn .35s ease forwards;opacity:0;}
+@keyframes flipIn{from{opacity:0;transform:translateY(16px) scale(.95)}to{opacity:1;transform:none}}
+.anon-card:nth-child(1){animation-delay:.05s}
+.anon-card:nth-child(2){animation-delay:.18s}
+.anon-card:nth-child(3){animation-delay:.31s}
+.anon-card:nth-child(4){animation-delay:.44s}
+.anon-card:nth-child(5){animation-delay:.57s}
+.anon-label{padding:10px 16px;background:var(--light);border-bottom:2px solid #eee;font-family:'Fredoka One',cursive;font-size:15px;color:#888;display:flex;align-items:center;justify-content:space-between;}
+.anon-canvas-wrap{background:white;width:100%;aspect-ratio:3/2;display:flex;align-items:center;justify-content:center;}
+.anon-canvas-wrap img{max-width:100%;max-height:100%;object-fit:contain;padding:8px;}
+.vote-area{padding:12px 16px;}
+.vote-btn{width:100%;padding:12px;border:2px solid var(--ink);border-radius:12px;background:white;font-family:'Fredoka One',cursive;font-size:16px;cursor:pointer;box-shadow:var(--shadow-sm);transition:all .12s;text-align:center;}
+.vote-btn:active{transform:translate(2px,2px);box-shadow:none;}
+.vote-btn.voted{background:var(--yellow);border-color:var(--ink);}
+.vote-btn.my-answer{background:#f5f5f5;color:#bbb;cursor:not-allowed;box-shadow:none;border-color:#ddd;}
+.vote-wait{padding:16px;background:white;border-top:3px solid var(--ink);text-align:center;font-family:'Fredoka One',cursive;font-size:15px;color:#aaa;}
+
+/* ── RESULTS ── */
+.results-body{flex:1;padding:14px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.result-card{background:white;border:3px solid var(--ink);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;animation:popIn .3s cubic-bezier(.34,1.56,.64,1) forwards;opacity:0;}
+.result-card:nth-child(1){animation-delay:.0s}
+.result-card:nth-child(2){animation-delay:.12s}
+.result-card:nth-child(3){animation-delay:.24s}
+.result-card:nth-child(4){animation-delay:.36s}
+.result-card-head{padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:2px solid #eee;}
+.result-emo{font-size:22px;}
+.result-name{font-weight:900;font-size:15px;flex:1;}
+.vote-count-badge{font-family:'Fredoka One',cursive;font-size:20px;background:var(--yellow);color:var(--ink);padding:4px 14px;border-radius:20px;border:2px solid var(--ink);}
+.result-img{width:100%;aspect-ratio:3/2;object-fit:contain;display:block;background:white;padding:8px;}
+.pts-line{padding:10px 16px;background:var(--light);display:flex;align-items:center;justify-content:space-between;border-top:2px solid #eee;}
+.pts-label{font-size:13px;color:#888;}
+.pts-val{font-family:'Fredoka One',cursive;font-size:22px;color:var(--orange);}
+
+/* ── SCORES ── */
+.scores-body{flex:1;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.score-item{display:flex;align-items:center;gap:14px;background:white;border:2px solid var(--ink);border-radius:16px;padding:14px 18px;box-shadow:var(--shadow-sm);animation:slideUp .3s ease forwards;opacity:0;}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.score-item:nth-child(1){animation-delay:.05s;border-left:5px solid var(--yellow);}
+.score-item:nth-child(2){animation-delay:.15s;border-left:5px solid #b0bec5;}
+.score-item:nth-child(3){animation-delay:.25s;border-left:5px solid #cd7f32;}
+.score-item:nth-child(n+4){animation-delay:.35s;}
+.rank-num{font-family:'Fredoka One',cursive;font-size:28px;color:#ccc;width:32px;text-align:center;flex-shrink:0;}
+.score-item:nth-child(1) .rank-num{color:var(--yellow);}
+.score-emo{font-size:24px;}
+.score-info{flex:1;}
+.score-name{font-weight:900;font-size:16px;}
+.score-pts{font-family:'Fredoka One',cursive;font-size:26px;color:var(--orange);}
+.score-pts span{font-size:13px;color:#aaa;}
+
+/* ── LOG ── */
+.log-body{flex:1;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.log-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#ccc;}
+.log-empty-icon{font-size:48px;}
+.log-empty-text{font-family:'Fredoka One',cursive;font-size:18px;}
+.log-round-group{display:flex;flex-direction:column;gap:10px;}
+.log-round-label{font-family:'Fredoka One',cursive;font-size:13px;color:#aaa;letter-spacing:2px;text-transform:uppercase;padding:4px 0;}
+.log-card{background:white;border:2px solid var(--ink);border-radius:18px;box-shadow:var(--shadow-sm);overflow:hidden;animation:popIn .2s ease;}
+.log-card-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--light);border-bottom:2px solid #eee;}
+.log-votes{font-family:'Fredoka One',cursive;font-size:13px;background:var(--yellow);padding:2px 10px;border-radius:20px;border:2px solid var(--ink);}
+.log-img{width:100%;aspect-ratio:3/2;object-fit:contain;display:block;background:white;padding:8px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:white;font-family:'Fredoka One',cursive;font-size:16px;padding:12px 24px;border-radius:40px;z-index:999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ── LOADING ── */
+.loading-screen{position:fixed;inset:0;background:var(--light);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;gap:16px;}
+.loading-logo{font-family:'Fredoka One',cursive;font-size:clamp(32px,11vw,64px);white-space:nowrap;}
+.loading-logo .b1{color:var(--pink);}
+.loading-logo .b2{color:var(--blue);}
+.spinner{width:40px;height:40px;border:4px solid #eee;border-top-color:var(--pink);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loading">
+  <div class="loading-logo"><span class="b1">BOARD</span><span class="b2">BOARD</span></div>
+  <div class="spinner"></div>
+</div>
+
+<!-- HOME -->
+<div id="home" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;">
+    <div class="home-logo"><span class="b1">BOARD</span><span class="b2">BOARD</span></div>
+    <div class="home-sub">みんなのスマホをホワイトボード代わりに</div>
+    <div class="home-card card">
+      <button class="btn btn-pink" onclick="openCreate()">✏️ ルームをつくる</button>
+      <div class="or-row">or</div>
+      <input class="input" id="join-code" type="text" placeholder="ルームコード (4文字)" maxlength="4"
+        style="text-align:center;text-transform:uppercase;letter-spacing:4px;font-size:22px;">
+      <button class="btn btn-blue" onclick="openJoin()">🚪 参加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAME MODAL -->
+<div id="name-modal" class="modal-bg" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title">なまえは？</div>
+    <input class="input" id="name-input" type="text" placeholder="ニックネーム" maxlength="10" style="margin-bottom:16px;text-align:center;">
+    <button class="btn btn-pink" onclick="confirmName()">決定！🎉</button>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby" class="screen">
+  <div class="topbar" style="background:var(--pink);">
+    <div class="topbar-logo">BOARDBOARD</div>
+    <div class="topbar-badge" id="topbar-code">----</div>
+  </div>
+  <div class="lobby-body">
+    <div class="code-block">
+      <div class="code-label">ROOM CODE</div>
+      <div class="code-big" id="code-big">----</div>
+      <div class="code-hint">友達にこのコードを教えよう！</div>
+    </div>
+    <div>
+      <div class="sec-title">参加中 <span id="player-count">0</span>人</div>
+      <div class="player-list" id="player-list"></div>
+    </div>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px;padding-top:16px;">
+      <button class="btn btn-mint" id="start-round-btn" onclick="startRound()">✏️ ラウンド開始！</button>
+      <button class="btn btn-white" onclick="goLog()">📋 ログを見る</button>
+    </div>
+  </div>
+</div>
+
+<!-- WHITEBOARD -->
+<div id="board" class="screen">
+  <div class="topbar" style="background:var(--blue);">
+    <button class="back-btn" onclick="goLobby()">←</button>
+    <div class="topbar-logo" id="board-title">ボードに書こう</div>
+    <div id="submit-count-label" style="font-family:'Fredoka One',cursive;font-size:14px;color:rgba(255,255,255,.7);"></div>
+  </div>
+  <div class="toolbar-wrap">
+    <div class="c-dot active" style="background:#2D2D2D;" data-color="#2D2D2D" onclick="setColor(this)"></div>
+    <div class="c-dot" style="background:#FF6B9D;" data-color="#FF6B9D" onclick="setColor(this)"></div>
+    <div class="c-dot" style="background:#4D96FF;" data-color="#4D96FF" onclick="setColor(this)"></div>
+    <div class="c-dot" style="background:#FFD93D;" data-color="#FFD93D" onclick="setColor(this)"></div>
+    <div class="c-dot" style="background:#06D6A0;" data-color="#06D6A0" onclick="setColor(this)"></div>
+    <div class="c-dot" style="background:#FF6B35;" data-color="#FF6B35" onclick="setColor(this)"></div>
+    <div class="t-sep"></div>
+    <button class="t-pill active" id="tp-pen"    onclick="setTool('pen')">✏️ ペン</button>
+    <button class="t-pill"        id="tp-eraser" onclick="setTool('eraser')">🩹 消しゴム</button>
+    <div class="t-sep"></div>
+    <button class="t-pill active" data-sz="3"  onclick="setSize(this,3)">S</button>
+    <button class="t-pill"        data-sz="8"  onclick="setSize(this,8)">M</button>
+    <button class="t-pill"        data-sz="18" onclick="setSize(this,18)">L</button>
+  </div>
+  <div class="canvas-wrap" id="canvas-wrap">
+    <canvas id="draw-canvas"></canvas>
+    <div class="canvas-ghost" id="canvas-ghost">ここに書こう！</div>
+    <div class="wait-overlay" id="wait-overlay" style="display:none;">
+      <div class="wait-icon">⏳</div>
+      <div class="wait-text">提出済み！</div>
+      <div class="wait-sub" id="wait-sub-text">他の人を待っています…</div>
+    </div>
+  </div>
+  <div class="board-bottom">
+    <button class="erase-btn" onclick="clearCanvas()">🗑 全消し</button>
+    <button class="submit-btn" id="submit-btn" onclick="submitAnswer()">提出する ✓</button>
+  </div>
+</div>
+
+<!-- REVEAL -->
+<div id="reveal" class="screen">
+  <div class="topbar" style="background:var(--purple);">
+    <div class="topbar-logo">🎭 みんなの回答</div>
+    <div id="vote-status-badge" class="topbar-badge" style="font-size:13px;letter-spacing:1px;"></div>
+  </div>
+  <div class="reveal-body" id="reveal-body"></div>
+  <div class="vote-wait" id="vote-wait-bar">いいと思う回答に投票しよう（1票だけ！）</div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="screen">
+  <div class="topbar" style="background:var(--orange);">
+    <div class="topbar-logo">🏆 投票結果</div>
+  </div>
+  <div class="results-body" id="results-body"></div>
+  <div style="padding:12px 14px 24px;display:flex;gap:10px;">
+    <button class="btn btn-yellow" style="flex:1;" onclick="startRound()">次のラウンド →</button>
+    <button class="btn btn-white"  style="flex:0 0 auto;padding:14px 16px;font-size:15px;" onclick="goScores()">スコア 📊</button>
+  </div>
+</div>
+
+<!-- SCORES -->
+<div id="scores" class="screen">
+  <div class="topbar" style="background:var(--mint);">
+    <button class="back-btn" onclick="goLobby()">←</button>
+    <div class="topbar-logo">📊 スコア</div>
+  </div>
+  <div class="scores-body" id="scores-body"></div>
+  <div style="padding:12px 14px 28px;display:flex;gap:10px;">
+    <button class="btn btn-mint" style="flex:1;" onclick="startRound()">次のラウンド →</button>
+    <button class="btn btn-white" style="flex:0 0 auto;padding:14px 16px;font-size:15px;" onclick="goLog()">ログ 📋</button>
+  </div>
+</div>
+
+<!-- LOG -->
+<div id="log" class="screen">
+  <div class="topbar" style="background:var(--mint);">
+    <button class="back-btn" onclick="goLobby()">←</button>
+    <div class="topbar-logo">📋 ログ</div>
+    <div class="topbar-badge" id="log-count-badge" style="font-size:14px;">0件</div>
+  </div>
+  <div class="log-body" id="log-body">
+    <div class="log-empty" id="log-empty">
+      <div class="log-empty-icon">📭</div>
+      <div class="log-empty-text">まだログがないよ！</div>
+    </div>
+  </div>
+  <div style="padding:12px 14px 28px;">
+    <button class="btn btn-ghost" onclick="goLobby()">← 戻る</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue, push, remove }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── Firebase config ──
+const firebaseConfig = {
+  apiKey: "AIzaSyB9yGkL5UclluPJUEZveJ0MbugE81N9qqo",
+  authDomain: "boardboard-3b0ed.firebaseapp.com",
+  databaseURL: "https://boardboard-3b0ed-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "boardboard-3b0ed",
+  storageBucket: "boardboard-3b0ed.firebasestorage.app",
+  messagingSenderId: "503619563432",
+  appId: "1:503619563432:web:9aa8db478df7826d5c779d"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── State ──
+const EMOJIS = ['🎭','🦊','🌸','⚡','🐸','🍩','🎯','🌈','🦄','🔥','🐙','🍄'];
+const S = {
+  name:'', emoji:'', playerId:'', roomCode:'',
+  isHost:false, pendingMode:'',
+  tool:'pen', color:'#2D2D2D', size:3,
+  drawing:false, lx:0, ly:0,
+  submitted:false, voted:false,
+  round:0,
+  unsubFns:[],  // firebase listener unsubscribe functions
+};
+
+function randCode(){ return Math.random().toString(36).substr(2,4).toUpperCase(); }
+function nowStr(){ const d=new Date(); return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).substr(2,4); }
+
+// ── Screens ──
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goLobby(){ show('lobby'); }
+function goLog()  { show('log'); renderLog(); }
+function goScores(){ show('scores'); renderScores(); }
+
+// ── Home ──
+function openCreate(){
+  S.pendingMode='host';
+  S.roomCode=randCode();
+  openNameModal();
+}
+function openJoin(){
+  const code=document.getElementById('join-code').value.trim().toUpperCase();
+  if(code.length<4){ toast('ルームコードを入力してね'); return; }
+  S.pendingMode='join';
+  S.roomCode=code;
+  openNameModal();
+}
+function openNameModal(){
+  document.getElementById('name-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('name-input').focus(),80);
+}
+async function confirmName(){
+  const n=document.getElementById('name-input').value.trim();
+  if(!n){ toast('なまえを入力してね'); return; }
+  S.name=n;
+  S.emoji=EMOJIS[Math.floor(Math.random()*EMOJIS.length)];
+  S.playerId=uid();
+  S.isHost=S.pendingMode==='host';
+  document.getElementById('name-modal').style.display='none';
+  document.getElementById('name-input').value='';
+  await enterLobby();
+}
+
+// ── Lobby ──
+async function enterLobby(){
+  document.getElementById('topbar-code').textContent=S.roomCode;
+  document.getElementById('code-big').textContent=S.roomCode;
+
+  // Write player to Firebase
+  await set(ref(db,`rooms/${S.roomCode}/players/${S.playerId}`),{
+    name:S.name, emoji:S.emoji, isHost:S.isHost,
+    score:0, submitted:false, voted:false, dataUrl:''
+  });
+
+  // Init room state if host
+  if(S.isHost){
+    await set(ref(db,`rooms/${S.roomCode}/state`),{
+      phase:'lobby', round:0
+    });
+  }
+
+  listenLobby();
+  show('lobby');
+}
+
+function listenLobby(){
+  clearListeners();
+  // Players listener
+  const playersRef = ref(db,`rooms/${S.roomCode}/players`);
+  const unsub1 = onValue(playersRef, snap=>{
+    const data = snap.val()||{};
+    renderPlayers(data);
+  });
+  // Phase listener
+  const stateRef = ref(db,`rooms/${S.roomCode}/state`);
+  const unsub2 = onValue(stateRef, snap=>{
+    const state = snap.val();
+    if(!state) return;
+    handlePhaseChange(state.phase, state.round);
+  });
+  S.unsubFns.push(unsub1, unsub2);
+}
+
+function clearListeners(){
+  // Firebase onValue returns unsubscribe fn directly
+  S.unsubFns.forEach(fn=>{ try{ fn(); }catch(e){} });
+  S.unsubFns=[];
+}
+
+function renderPlayers(data){
+  const players = Object.values(data||{});
+  document.getElementById('player-count').textContent=players.length;
+  document.getElementById('player-list').innerHTML=players.map(p=>`
+    <div class="player-row">
+      <div class="p-emo">${p.emoji}</div>
+      <div class="p-name">${p.name}</div>
+      ${p.submitted?'<div class="status-dot submitted"></div>':'<div class="status-dot"></div>'}
+      ${p.isHost?'<div class="host-badge">HOST</div>':''}
+    </div>
+  `).join('');
+}
+
+// ── Phase management ──
+function handlePhaseChange(phase, round){
+  if(phase==='board' && round > S.round){
+    S.round=round;
+    S.submitted=false;
+    S.voted=false;
+    goBoard();
+  } else if(phase==='reveal'){
+    loadReveal();
+  } else if(phase==='results'){
+    loadResults();
+  }
+}
+
+// ── Round start ──
+async function startRound(){
+  S.round++;
+  S.submitted=false;
+  S.voted=false;
+  // Reset all players' submitted/voted/dataUrl
+  const snap = await get(ref(db,`rooms/${S.roomCode}/players`));
+  const players = snap.val()||{};
+  const updates={};
+  Object.keys(players).forEach(pid=>{
+    updates[`rooms/${S.roomCode}/players/${pid}/submitted`]=false;
+    updates[`rooms/${S.roomCode}/players/${pid}/voted`]=false;
+    updates[`rooms/${S.roomCode}/players/${pid}/dataUrl`]='';
+    updates[`rooms/${S.roomCode}/players/${pid}/voteTarget`]=null;
+  });
+  // Clear previous answers & votes
+  updates[`rooms/${S.roomCode}/answers`]=null;
+  updates[`rooms/${S.roomCode}/state`]={phase:'board', round:S.round};
+  await update(ref(db), updates);
+  goBoard();
+}
+
+// ── Board ──
+let ctx;
+function goBoard(){
+  show('board');
+  initCanvas();
+  document.getElementById('board-title').textContent=`${S.emoji} ${S.name}`;
+  document.getElementById('wait-overlay').style.display='none';
+  document.getElementById('submit-btn').classList.remove('done');
+  document.getElementById('submit-btn').textContent='提出する ✓';
+  document.getElementById('submit-count-label').textContent='';
+  clearCanvas();
+  listenSubmits();
+}
+
+function listenSubmits(){
+  const playersRef=ref(db,`rooms/${S.roomCode}/players`);
+  const unsub=onValue(playersRef,snap=>{
+    const players=Object.values(snap.val()||{});
+    const submitCount=players.filter(p=>p.submitted).length;
+    document.getElementById('submit-count-label').textContent=`${submitCount}/${players.length}人`;
+    if(S.submitted){
+      document.getElementById('wait-sub-text').textContent=`${submitCount}/${players.length}人が提出済み`;
+    }
+    // All submitted → move to reveal (host triggers)
+    if(submitCount>0 && submitCount===players.length && S.isHost){
+      unsub();
+      setTimeout(()=>set(ref(db,`rooms/${S.roomCode}/state`),{phase:'reveal',round:S.round}),500);
+    }
+  });
+  S.unsubFns.push(unsub);
+}
+
+function initCanvas(){
+  const canvas=document.getElementById('draw-canvas');
+  const wrap=document.getElementById('canvas-wrap');
+  const W=wrap.clientWidth;
+  const H=Math.max(wrap.clientHeight,260);
+  canvas.width=W; canvas.height=H; canvas._init=true;
+  ctx=canvas.getContext('2d');
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.fillStyle='white'; ctx.fillRect(0,0,W,H);
+  if(!canvas._ev){
+    canvas._ev=true;
+    canvas.addEventListener('mousedown',startD);
+    canvas.addEventListener('mousemove',doD);
+    canvas.addEventListener('mouseup',stopD);
+    canvas.addEventListener('mouseleave',stopD);
+    canvas.addEventListener('touchstart',e=>{e.preventDefault();startD(e.touches[0]);},{passive:false});
+    canvas.addEventListener('touchmove',e=>{e.preventDefault();doD(e.touches[0]);},{passive:false});
+    canvas.addEventListener('touchend',stopD);
+  }
+}
+function getXY(e){
+  const c=document.getElementById('draw-canvas'),r=c.getBoundingClientRect();
+  return{x:(e.clientX-r.left)*(c.width/r.width),y:(e.clientY-r.top)*(c.height/r.height)};
+}
+function startD(e){S.drawing=true;const{x,y}=getXY(e);S.lx=x;S.ly=y;document.getElementById('canvas-ghost').style.display='none';}
+function doD(e){
+  if(!S.drawing||!ctx)return;
+  const{x,y}=getXY(e);
+  ctx.beginPath();ctx.moveTo(S.lx,S.ly);ctx.lineTo(x,y);
+  ctx.strokeStyle=S.tool==='eraser'?'white':S.color;
+  ctx.lineWidth=S.tool==='eraser'?S.size*5:S.size;
+  ctx.stroke();S.lx=x;S.ly=y;
+}
+function stopD(){S.drawing=false;}
+function clearCanvas(){
+  if(!ctx)return;
+  const c=document.getElementById('draw-canvas');
+  ctx.fillStyle='white';ctx.fillRect(0,0,c.width,c.height);
+  document.getElementById('canvas-ghost').style.display='flex';
+}
+function setColor(el){
+  document.querySelectorAll('.c-dot').forEach(d=>d.classList.remove('active'));
+  el.classList.add('active');S.color=el.dataset.color;setTool('pen');
+}
+function setTool(t){
+  S.tool=t;
+  document.getElementById('tp-pen').classList.toggle('active',t==='pen');
+  document.getElementById('tp-eraser').classList.toggle('active',t==='eraser');
+}
+function setSize(el,sz){
+  document.querySelectorAll('[data-sz]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');S.size=sz;
+}
+
+async function submitAnswer(){
+  if(S.submitted)return;
+  const canvas=document.getElementById('draw-canvas');
+  const dataUrl=canvas.toDataURL('image/png');
+  S.submitted=true;
+  document.getElementById('submit-btn').classList.add('done');
+  document.getElementById('submit-btn').textContent='提出済み ✓';
+  document.getElementById('wait-overlay').style.display='flex';
+  toast('提出しました！');
+  await update(ref(db,`rooms/${S.roomCode}/players/${S.playerId}`),{
+    submitted:true, dataUrl
+  });
+}
+
+// ── Reveal ──
+async function loadReveal(){
+  const snap=await get(ref(db,`rooms/${S.roomCode}/players`));
+  const players=snap.val()||{};
+  // Build shuffled answers list (store in Firebase so all players see same order)
+  const answersSnap=await get(ref(db,`rooms/${S.roomCode}/answers`));
+  let answers;
+  if(!answersSnap.exists()){
+    // Host builds the shuffled list
+    const arr=Object.entries(players).map(([pid,p])=>({playerId:pid,dataUrl:p.dataUrl,votes:0}));
+    for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+    const answersObj={};
+    arr.forEach((a,i)=>{ answersObj[i]=a; });
+    if(S.isHost) await set(ref(db,`rooms/${S.roomCode}/answers`),answersObj);
+    answers=arr;
+  } else {
+    answers=Object.values(answersSnap.val());
+  }
+
+  S.revealAnswers=answers;
+  S.revealPlayers=players;
+  S.voted=false;
+  renderReveal(answers,players);
+  show('reveal');
+  listenVotes(answers,players);
+}
+
+function renderReveal(answers, players){
+  const body=document.getElementById('reveal-body');
+  body.innerHTML=answers.map((a,i)=>{
+    const isMe=a.playerId===S.playerId;
+    return `
+    <div class="anon-card">
+      <div class="anon-label">
+        <span>回答 ${String.fromCharCode(65+i)}</span>
+        ${S.voted&&S.myVoteIdx===i?'<span style="background:var(--yellow);font-size:12px;padding:3px 10px;border-radius:20px;border:2px solid var(--ink);">あなたの票 ✓</span>':''}
+      </div>
+      <div class="anon-canvas-wrap"><img src="${a.dataUrl}" alt="回答${i+1}"></div>
+      <div class="vote-area">
+        <button class="vote-btn ${isMe?'my-answer':''} ${S.voted&&S.myVoteIdx===i?'voted':''}"
+          id="vbtn-${i}"
+          onclick="${isMe?'':`castVote(${i})`}"
+          ${isMe?'disabled':''}
+        >${isMe?'自分の回答':S.voted?(S.myVoteIdx===i?'✓ 投票済み':'投票済み'):'👍 投票する'}</button>
+      </div>
+    </div>`;
+  }).join('');
+  updateVoteStatusBadge(players);
+}
+
+async function castVote(idx){
+  if(S.voted){toast('もう投票したよ！');return;}
+  const a=S.revealAnswers[idx];
+  if(a.playerId===S.playerId){toast('自分には投票できないよ');return;}
+  S.voted=true;
+  S.myVoteIdx=idx;
+  toast('投票しました！');
+  // Write vote to Firebase
+  await update(ref(db,`rooms/${S.roomCode}/players/${S.playerId}`),{voted:true,voteTarget:a.playerId});
+  // Increment vote count on answer
+  const curSnap=await get(ref(db,`rooms/${S.roomCode}/answers/${idx}/votes`));
+  const cur=curSnap.val()||0;
+  await set(ref(db,`rooms/${S.roomCode}/answers/${idx}/votes`),cur+1);
+  renderReveal(S.revealAnswers,S.revealPlayers);
+}
+
+function listenVotes(answers,players){
+  const playersRef=ref(db,`rooms/${S.roomCode}/players`);
+  const unsub=onValue(playersRef,snap=>{
+    const ps=snap.val()||{};
+    const voteCount=Object.values(ps).filter(p=>p.voted).length;
+    const total=Object.values(ps).length;
+    document.getElementById('vote-status-badge').textContent=`${voteCount}/${total}人投票`;
+    if(voteCount===total && S.isHost){
+      unsub();
+      document.getElementById('vote-wait-bar').textContent='全員投票完了！結果を見よう 🎉';
+      setTimeout(()=>set(ref(db,`rooms/${S.roomCode}/state`),{phase:'results',round:S.round}),1000);
+    }
+  });
+  S.unsubFns.push(unsub);
+}
+
+function updateVoteStatusBadge(players){
+  const voted=Object.values(players).filter(p=>p.voted).length;
+  const total=Object.values(players).length;
+  document.getElementById('vote-status-badge').textContent=`${voted}/${total}人投票`;
+}
+
+// ── Results ──
+async function loadResults(){
+  const [answersSnap,playersSnap]=await Promise.all([
+    get(ref(db,`rooms/${S.roomCode}/answers`)),
+    get(ref(db,`rooms/${S.roomCode}/players`))
+  ]);
+  const answers=Object.values(answersSnap.val()||{});
+  const players=playersSnap.val()||{};
+
+  // Award points
+  const pointUpdates={};
+  answers.forEach(a=>{
+    if(a.votes>0){
+      const cur=players[a.playerId]?.score||0;
+      pointUpdates[`rooms/${S.roomCode}/players/${a.playerId}/score`]=cur+a.votes;
+    }
+  });
+  if(Object.keys(pointUpdates).length>0) await update(ref(db),pointUpdates);
+
+  // Save all answers to log in Firebase
+  const logEntry={
+    round:S.round,
+    time:nowStr(),
+    answers:answers.map(a=>({
+      playerId:a.playerId,
+      name:players[a.playerId]?.name||'?',
+      emoji:players[a.playerId]?.emoji||'👤',
+      dataUrl:a.dataUrl,
+      votes:a.votes
+    }))
+  };
+  await push(ref(db,`rooms/${S.roomCode}/log`),logEntry);
+
+  // Sort by votes
+  const sorted=[...answers].sort((a,b)=>b.votes-a.votes);
+  const body=document.getElementById('results-body');
+  body.innerHTML=sorted.map((a,rank)=>{
+    const p=players[a.playerId]||{name:'?',emoji:'👤'};
+    const isMe=a.playerId===S.playerId;
+    return `
+    <div class="result-card">
+      <div class="result-card-head">
+        <div class="result-emo">${p.emoji}</div>
+        <div class="result-name">${p.name}${isMe?' <span style="font-size:11px;background:var(--pink);color:white;padding:2px 8px;border-radius:20px;">あなた</span>':''}</div>
+        <div class="vote-count-badge">${a.votes}票</div>
+      </div>
+      <img class="result-img" src="${a.dataUrl}" alt="">
+      <div class="pts-line">
+        <span class="pts-label">獲得ポイント</span>
+        <span class="pts-val">+${a.votes} pt</span>
+      </div>
+    </div>`;
+  }).join('');
+  show('results');
+}
+
+// ── Scores ──
+async function renderScores(){
+  const snap=await get(ref(db,`rooms/${S.roomCode}/players`));
+  const players=Object.values(snap.val()||{}).sort((a,b)=>b.score-a.score);
+  document.getElementById('scores-body').innerHTML=players.map((p,i)=>`
+    <div class="score-item">
+      <div class="rank-num">${i+1}</div>
+      <div class="score-emo">${p.emoji}</div>
+      <div class="score-info"><div class="score-name">${p.name}</div></div>
+      <div class="score-pts">${p.score}<span> pt</span></div>
+    </div>
+  `).join('');
+  show('scores');
+}
+
+// ── Log ──
+async function renderLog(){
+  const snap=await get(ref(db,`rooms/${S.roomCode}/log`));
+  const logData=snap.val();
+  const badge=document.getElementById('log-count-badge');
+  const body=document.getElementById('log-body');
+  const empty=document.getElementById('log-empty');
+  if(!logData){ badge.textContent='0件'; empty.style.display='flex'; return; }
+  const rounds=Object.values(logData).sort((a,b)=>b.round-a.round);
+  const totalAnswers=rounds.reduce((s,r)=>s+(r.answers?.length||0),0);
+  badge.textContent=`${totalAnswers}件`;
+  empty.style.display='none';
+  body.innerHTML=rounds.map(r=>`
+    <div class="log-round-group">
+      <div class="log-round-label">Round ${r.round} — ${r.time}</div>
+      ${(r.answers||[]).sort((a,b)=>b.votes-a.votes).map(a=>`
+        <div class="log-card">
+          <div class="log-card-head">
+            <span style="font-size:18px;">${a.emoji}</span>
+            <span style="font-weight:900;font-size:14px;flex:1;">${a.name}</span>
+            <span class="log-votes">${a.votes}票</span>
+          </div>
+          <img class="log-img" src="${a.dataUrl}" alt="">
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+// ── Toast ──
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ── Init ──
+document.getElementById('loading').style.display='none';
+show('home');
+
+// Expose to window for onclick handlers
+window.openCreate=openCreate;
+window.openJoin=openJoin;
+window.confirmName=confirmName;
+window.startRound=startRound;
+window.goLobby=goLobby;
+window.goLog=goLog;
+window.goScores=goScores;
+window.goBoard=()=>{show('board');};
+window.clearCanvas=clearCanvas;
+window.setColor=setColor;
+window.setTool=setTool;
+window.setSize=setSize;
+window.submitAnswer=submitAnswer;
+window.castVote=castVote;
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('name-modal').style.display!=='none') confirmName();
+});
+</script>
+</body>
+</html>
