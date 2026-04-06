@@ -527,17 +527,13 @@ function renderPlayers(data){
   `).join('');
 }
 
-// ── Phase management ──
+// ── Phase management（ロビーからの遷移のみ） ──
 function handlePhaseChange(phase, round){
   if(phase==='board' && round > S.round){
     S.round=round;
     S.submitted=false;
     S.voted=false;
     goBoard();
-  } else if(phase==='reveal'){
-    loadReveal();
-  } else if(phase==='results'){
-    loadResults();
   }
 }
 
@@ -566,6 +562,7 @@ async function startRound(){
 // ── Board ──
 let ctx;
 function goBoard(){
+  clearListeners();  // 必ず全リスナーをリセット
   show('board');
   initCanvas();
   document.getElementById('board-title').textContent=`${S.emoji} ${S.name}`;
@@ -575,6 +572,23 @@ function goBoard(){
   document.getElementById('submit-count-label').textContent='';
   clearCanvas();
   listenSubmits();
+  listenPhase();  // phaseの変化を監視
+}
+
+function listenPhase(){
+  const stateRef=ref(db,`rooms/${S.roomCode}/state`);
+  const unsub=onValue(stateRef,snap=>{
+    const state=snap.val();
+    if(!state) return;
+    if(state.phase==='reveal' && state.round===S.round){
+      unsub();
+      loadReveal();
+    } else if(state.phase==='results' && state.round===S.round){
+      unsub();
+      loadResults();
+    }
+  });
+  S.unsubFns.push(unsub);
 }
 
 function listenSubmits(){
@@ -586,7 +600,6 @@ function listenSubmits(){
     if(S.submitted){
       document.getElementById('wait-sub-text').textContent=`${submitCount}/${players.length}人が提出済み`;
     }
-    // All submitted → move to reveal (host triggers)
     if(submitCount>0 && submitCount===players.length && S.isHost){
       unsub();
       setTimeout(()=>set(ref(db,`rooms/${S.roomCode}/state`),{phase:'reveal',round:S.round}),500);
@@ -677,6 +690,7 @@ async function forceResults(){
 
 // ── Reveal ──
 async function loadReveal(){
+  clearListeners();  // リスナーリセット
   const snap=await get(ref(db,`rooms/${S.roomCode}/players`));
   const players=snap.val()||{};
   // Build shuffled answers list (store in Firebase so all players see same order)
@@ -750,19 +764,29 @@ async function castVote(idx){
 }
 
 function listenVotes(answers,players){
+  // 全員投票を監視
   const playersRef=ref(db,`rooms/${S.roomCode}/players`);
-  const unsub=onValue(playersRef,snap=>{
+  const unsub1=onValue(playersRef,snap=>{
     const ps=snap.val()||{};
     const voteCount=Object.values(ps).filter(p=>p.voted).length;
     const total=Object.values(ps).length;
     document.getElementById('vote-status-badge').textContent=`${voteCount}/${total}人投票`;
     if(voteCount===total && S.isHost){
-      unsub();
-      document.getElementById('vote-wait-bar').textContent='全員投票完了！結果を見よう 🎉';
+      unsub1();
+      document.getElementById('vote-wait-bar').querySelector('span').textContent='全員投票完了！結果を見よう 🎉';
       setTimeout(()=>set(ref(db,`rooms/${S.roomCode}/state`),{phase:'results',round:S.round}),1000);
     }
   });
-  S.unsubFns.push(unsub);
+  // phase変化を監視（ホスト以外が結果画面に進むため）
+  const stateRef=ref(db,`rooms/${S.roomCode}/state`);
+  const unsub2=onValue(stateRef,snap=>{
+    const state=snap.val();
+    if(state?.phase==='results' && state.round===S.round){
+      unsub1(); unsub2();
+      loadResults();
+    }
+  });
+  S.unsubFns.push(unsub1, unsub2);
 }
 
 function updateVoteStatusBadge(players){
