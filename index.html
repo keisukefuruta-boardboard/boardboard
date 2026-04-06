@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>BOARDBOARD</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+JP:wght@400;700;900&family=Source+Code+Pro:wght@700&display=swap" rel="stylesheet">
 <style>
 :root {
   --pink:   #FF6B9D;
@@ -42,7 +42,7 @@ body::before{
 .topbar-logo{font-family:'Fredoka One',cursive;font-size:20px;color:white;flex:1;letter-spacing:1px;}
 .topbar-badge{
   background:white;border:2px solid var(--ink);border-radius:8px;
-  padding:5px 12px;font-family:'Fredoka One',cursive;font-size:16px;letter-spacing:3px;
+  padding:5px 12px;font-family:'Source Code Pro',monospace;font-size:16px;letter-spacing:3px;
 }
 .back-btn{background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:0 6px 0 0;}
 .btn{
@@ -105,7 +105,7 @@ body::before{
   box-shadow:var(--shadow);padding:18px;text-align:center;
 }
 .code-label{font-size:11px;color:var(--ink);opacity:.6;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;}
-.code-big{font-family:'Fredoka One',cursive;font-size:52px;color:var(--ink);letter-spacing:12px;line-height:1;}
+.code-big{font-family:'Source Code Pro',monospace;font-size:52px;color:var(--ink);letter-spacing:12px;line-height:1;}
 .code-hint{font-size:12px;color:var(--ink);opacity:.55;margin-top:6px;}
 .sec-title{font-family:'Fredoka One',cursive;font-size:15px;color:#999;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
 .player-list{display:flex;flex-direction:column;gap:8px;}
@@ -421,7 +421,12 @@ const S = {
   unsubFns:[],  // firebase listener unsubscribe functions
 };
 
-function randCode(){ return Math.random().toString(36).substr(2,4).toUpperCase(); }
+function randCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 1,I,0,O を除外
+  let code='';
+  for(let i=0;i<4;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
 function nowStr(){ const d=new Date(); return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`; }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).substr(2,4); }
 
