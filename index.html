@@ -694,6 +694,10 @@ async function loadReveal(){
   S.voted=false;
   renderReveal(answers,players);
   show('reveal');
+  // ホストは最初から強制ボタンを表示
+  if(S.isHost){
+    document.getElementById('force-results-btn').style.display='block';
+  }
   listenVotes(answers,players);
 }
 
